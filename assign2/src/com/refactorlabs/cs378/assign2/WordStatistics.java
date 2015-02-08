@@ -72,6 +72,58 @@ public class WordStatistics {
 
 
     /*
+        Defining a DoubleArrayWritable class that extends ArrayWritable
+        This is used to pack the output of reducer which consists of the
+        word, mean and variance of counts
+     */
+    public static class DoubleArrayWritable extends ArrayWritable{
+         /*
+            Defining a constructor to set the type
+            of ArrayWritable
+
+         */
+        public DoubleArrayWritable(){
+            super(DoubleWritable.class);
+        }
+        /*
+            Defining a method to set the values
+            of DoubleArrayWritable type
+
+         */
+
+        public void setValueArray(double[] vArr){
+            Writable[] wVals = new Writable[vArr.length];
+            // sz = new Long(vArr.length);
+            DoubleWritable tempVal;
+            for(int i=0;i<vArr.length;i++){
+                tempVal = new DoubleWritable(vArr[i]);
+                wVals[i] = (Writable)tempVal;
+            }
+
+            set(wVals);
+        }
+
+        /*
+            override toStrings method to tell how to display the output
+            from DoubleArrayWritable
+
+         */
+
+        public String[] toStrings(){
+            Writable[] wVals = get();
+            String[] outArr = new String[wVals.length];
+
+            for(int i=0;i<wVals.length;i++){
+                outArr[i] = ((DoubleWritable)wVals[i]).toString();
+            }
+
+            return outArr;
+        }
+
+    };
+
+
+    /*
         Defining MapClass as an extension of Mapper
         Input: Takes LongWritable Key and Text Value
         Output: LongWritable key and {Text, LongWritable, LongWritable} Value - LongArrayWritable
@@ -129,5 +181,37 @@ public class WordStatistics {
         }
     }
 
+    public static class ReduceClass extends Reducer<Text,LongArrayWritable,Text, DoubleArrayWritable> {
+        /**
+         * Counter group for the reducer.  Individual counters are grouped for the reducer.
+         */
+        private static final String REDUCER_COUNTER_GROUP = "Reducer Counts";
 
+        @Override
+        public void reduce(Text key, Iterable<LongArrayWritable> values, Context context)
+                throws IOException, InterruptedException {
+
+
+            context.getCounter(REDUCER_COUNTER_GROUP, "Words Out").increment(1L);
+
+
+            double[] res = new double[2]; //0 - mean 1- variance
+            int count = 0;
+            for(LongArrayWritable lArr : values){
+                long[] vals = lArr.getValueArray();
+                res[0] += vals[0]; //summing count of word occurrences
+                res[1] += vals[1]; //summing count of square of word occurrences
+                count++;
+            }
+
+            res[0] /= count; //computes mean for the word
+            double var = 0.0;
+            var = (res[1]/count) - (res[0]*res[0]); //computes variance for the given word
+            res[1] = var;
+
+            DoubleArrayWritable redOutput = new DoubleArrayWritable();
+            redOutput.setValueArray(res);
+            context.write(key, redOutput);
+        }
+    }
 }
