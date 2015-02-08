@@ -4,22 +4,13 @@ package com.refactorlabs.cs378.assign2;
  * Created by vidhoonv on 2/8/15.
  */
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.ArrayWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.util.GenericOptionsParser;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 public class WordStatistics {
@@ -30,6 +21,10 @@ public class WordStatistics {
         word, sum of counts and sum of square of counts
      */
     public static class LongArrayWritable extends ArrayWritable{
+        /*
+            a public member to hold size
+         */
+       // public Long sz = new Long();
         /*
             Defining a constructor to set the type
             of ArrayWritable
@@ -54,7 +49,28 @@ public class WordStatistics {
             return rValues;
         }
 
-    }
+        /*
+            Defining a method to set the values
+            of LongArrayWritable type
+
+         */
+
+        public void setValueArray(long[] vArr){
+            Writable[] wVals = new Writable[vArr.length];
+           // sz = new Long(vArr.length);
+            LongWritable tempVal;
+            for(int i=0;i<vArr.length;i++){
+                tempVal = new LongWritable(vArr[i]);
+                wVals[i] = (Writable)tempVal;
+            }
+
+            set(wVals);
+        }
+
+    };
+
+
+
     /*
         Defining MapClass as an extension of Mapper
         Input: Takes LongWritable Key and Text Value
@@ -75,6 +91,43 @@ public class WordStatistics {
 
             context.getCounter(MAPPER_COUNTER_GROUP, "Input Lines").increment(1L);
 
+            /*
+                process the input line
+             */
+            Map<String,Long> wordCount = new HashMap<String,Long>();
+            while (tokenizer.hasMoreTokens()) {
+                String token = tokenizer.nextToken();
+
+                /*
+                    insert all preprocessing of punctuations logic here
+                 */
+                if(wordCount.containsKey(token) == false){
+                    wordCount.put(token,1L);
+                }
+                else{
+                    wordCount.put(token,wordCount.get(token)+1);
+                }
+
+                context.getCounter(MAPPER_COUNTER_GROUP, "Words Out").increment(1L);
+            }
+
+            /*
+                create mapper output
+             */
+            long[] vArr = new long[2];
+            for(String k : wordCount.keySet()){
+
+                vArr[0] = wordCount.get(k);
+                vArr[1] = vArr[0]*vArr[0];
+
+                LongArrayWritable mOutput = new LongArrayWritable();
+                mOutput.setValueArray(vArr);
+
+                word.set(k);
+                context.write(word, mOutput);
+            }
         }
     }
+
+
 }
