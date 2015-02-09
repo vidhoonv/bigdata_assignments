@@ -256,7 +256,6 @@ public class WordStatistics {
             String[] lines= linesContent.split("\n");
 
             for(String line : lines){
-                System.out.println(line);
                 StringTokenizer tokenizer = new StringTokenizer(line);
 
                 context.getCounter(MAPPER_COUNTER_GROUP, "Input Lines").increment(1L);
@@ -306,6 +305,40 @@ public class WordStatistics {
                 wordCount.clear();
 
             }
+
+        }
+    }
+
+    public static class CombineClass extends Reducer<Text,LongArrayWritable,Text, LongArrayWritable>{
+        /**
+         * Counter group for the combiner.  Individual counters are grouped for the combiner.
+         */
+        private static final String COMBINER_COUNTER_GROUP = "Combiner Counts";
+
+        @Override
+        public void reduce(Text key, Iterable<LongArrayWritable> values, Context context)
+                throws IOException, InterruptedException {
+
+            long[] rArr = new long[3];
+            rArr[0] = 0;
+            rArr[1] = 0;
+            rArr[2] = 0;
+
+            long count = 0;
+            for(LongArrayWritable lArr : values){
+                long[] vArr = lArr.getValueArray();
+                rArr[1] += vArr[0];
+                rArr[2] += vArr[1];
+                count++;
+            }
+
+            rArr[0] = count;
+
+            LongArrayWritable cOutput = new LongArrayWritable();
+            cOutput.setValueArray(rArr);
+            context.write(key,cOutput);
+
+            context.getCounter(COMBINER_COUNTER_GROUP, "Words Out").increment(1L);
 
         }
     }
