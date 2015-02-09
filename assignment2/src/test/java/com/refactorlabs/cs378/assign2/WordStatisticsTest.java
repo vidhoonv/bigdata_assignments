@@ -59,7 +59,7 @@ public class WordStatisticsTest {
 
         mapDriver.runTest();
     }
-
+/*
     @Test
     public void testReducer() throws IOException {
         List<WordStatistics.LongArrayWritable> values = new ArrayList<WordStatistics.LongArrayWritable>();
@@ -123,4 +123,5 @@ public class WordStatisticsTest {
 
         mapReduceDriver.runTest();
     }
+    */
 }

@@ -367,9 +367,9 @@ public class WordStatistics {
             double count = 0;
             for(LongArrayWritable lArr : values){
                 long[] vals = lArr.getValueArray();
-                res[1] += vals[0]; //summing count of word occurrences
-                res[2] += vals[1]; //summing count of square of word occurrences
-                count++;
+                res[1] += vals[1]; //summing count of word occurrences
+                res[2] += vals[2]; //summing count of square of word occurrences
+                count  += vals[0]; //summing no of paras occurred
                 //System.out.println("DEBUG: "+key+",  "+count+","+vals[0]+","+vals[1]);
             }
             res[0] = count;
