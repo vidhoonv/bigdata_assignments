@@ -32,22 +32,30 @@ public class WordStatisticsTest {
     @Test
     public void testMapper() throws IOException {
         mapDriver.withInput(new LongWritable(), new Text(
-                "Hello World Hello World Hello World Hello \n"));
+                "Hello World Hello \nWorld Hello World Hello\n"));
         WordStatistics.LongArrayWritable x = new WordStatistics.LongArrayWritable();
         long[] vArr = new long[2];
 
 
-        vArr[0]=4;
-        vArr[1]=16;
+        vArr[0]=2;
+        vArr[1]=4;
         x.setValueArray(vArr);
         mapDriver.withOutput(new Text("hello"), x);
 
-        vArr[0]=3;
-        vArr[1]=9;
+        vArr[0]=1;
+        vArr[1]=1;
         x.setValueArray(vArr);
         mapDriver.withOutput(new Text("world"), x);
 
+        vArr[0]=2;
+        vArr[1]=4;
+        x.setValueArray(vArr);
+        mapDriver.withOutput(new Text("hello"), x);
 
+        vArr[0]=2;
+        vArr[1]=4;
+        x.setValueArray(vArr);
+        mapDriver.withOutput(new Text("world"), x);
 
         mapDriver.runTest();
     }

@@ -252,52 +252,61 @@ public class WordStatistics {
         @Override
         public void map(LongWritable key, Text value, Context context)
                 throws IOException, InterruptedException {
-            String line = value.toString();
-            StringTokenizer tokenizer = new StringTokenizer(line);
+            String linesContent = value.toString();
+            String[] lines= linesContent.split("\n");
 
-            context.getCounter(MAPPER_COUNTER_GROUP, "Input Lines").increment(1L);
+            for(String line : lines){
+                System.out.println(line);
+                StringTokenizer tokenizer = new StringTokenizer(line);
+
+                context.getCounter(MAPPER_COUNTER_GROUP, "Input Lines").increment(1L);
 
             /*
                 process the input line
              */
-            Map<String,Long> wordCount = new HashMap<String,Long>();
-            while (tokenizer.hasMoreTokens()) {
-                String token = tokenizer.nextToken();
+                Map<String,Long> wordCount = new HashMap<String,Long>();
+                while (tokenizer.hasMoreTokens()) {
+                    String token = tokenizer.nextToken();
 
                 /*
                     insert all preprocessing of punctuations logic here
                  */
 
-                String[] tokens = preProcessToken(token);
+                    String[] tokens = preProcessToken(token);
 
-                for(String tok : tokens){
-                    if(wordCount.containsKey(tok) == false){
-                        wordCount.put(tok,1L);
-                    }
-                    else{
-                        wordCount.put(tok,wordCount.get(tok)+1);
+                    for(String tok : tokens){
+                        if(wordCount.containsKey(tok) == false){
+                            wordCount.put(tok,1L);
+                        }
+                        else{
+                            wordCount.put(tok,wordCount.get(tok)+1);
+                        }
+
+                        context.getCounter(MAPPER_COUNTER_GROUP, "Words Out").increment(1L);
                     }
 
-                    context.getCounter(MAPPER_COUNTER_GROUP, "Words Out").increment(1L);
                 }
-
-            }
 
             /*
                 create mapper output
              */
-            long[] vArr = new long[2];
-            for(String k : wordCount.keySet()){
+                long[] vArr = new long[2];
+                for(String k : wordCount.keySet()){
 
-                vArr[0] = wordCount.get(k);
-                vArr[1] = vArr[0]*vArr[0];
+                    vArr[0] = wordCount.get(k);
+                    vArr[1] = vArr[0]*vArr[0];
 
-                LongArrayWritable mOutput = new LongArrayWritable();
-                mOutput.setValueArray(vArr);
+                    LongArrayWritable mOutput = new LongArrayWritable();
+                    mOutput.setValueArray(vArr);
 
-                word.set(k);
-                context.write(word, mOutput);
+                    word.set(k);
+                    context.write(word, mOutput);
+                }
+
+                wordCount.clear();
+
             }
+
         }
     }
 
