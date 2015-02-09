@@ -75,6 +75,44 @@ public class WordStatistics {
             set(wVals);
         }
 
+        /*
+
+            methods needed for tests
+         */
+        public String toString(){
+            Writable[] wVals = get();
+            // String[] outArr = new String[wVals.length];
+            String outText = new String("");
+            for(int i=0;i<wVals.length;i++){
+                outText += ((LongWritable)wVals[i]).toString();
+                outText += ",";
+            }
+
+            outText.trim();
+            if(outText.endsWith(",")){
+                outText=outText.substring(0,outText.length()-1);
+            }
+
+            return outText;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            String arg1str = toString();
+            String arg2str = obj.toString();
+
+            if(arg1str.equals(arg2str)){
+                return true;
+            }
+            return false;
+        }
+
+
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
+        }
     };
 
 
@@ -134,12 +172,34 @@ public class WordStatistics {
             String outText = new String("");
             for(int i=0;i<wVals.length;i++){
                 outText += ((DoubleWritable)wVals[i]).toString();
-                outText += "\t";
+                outText += ",";
             }
 
             outText.trim();
+            if(outText.endsWith(",")){
+                outText=outText.substring(0,outText.length()-1);
+            }
 
             return outText;
+        }
+
+        /*
+            methods required for testing
+         */
+
+        public boolean equals(Object obj) {
+            String arg1str = toString();
+            String arg2str = obj.toString();
+
+            if(arg1str.equals(arg2str)){
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
         }
 
     };
@@ -157,6 +217,16 @@ public class WordStatistics {
         private static final String MAPPER_COUNTER_GROUP = "Mapper Counts";
         private Text word = new Text();
 
+        public String preProcessToken(String token){
+
+            //convert to lower case
+            token=token.toLowerCase();
+
+            //remove all punctuations from beginning and end of text
+            token=token.replaceAll("^\\p{Punct}+|\\p{Punct}+$", "");
+
+            return token;
+        }
         @Override
         public void map(LongWritable key, Text value, Context context)
                 throws IOException, InterruptedException {
@@ -175,6 +245,7 @@ public class WordStatistics {
                 /*
                     insert all preprocessing of punctuations logic here
                  */
+                token = preProcessToken(token);
                 if(wordCount.containsKey(token) == false){
                     wordCount.put(token,1L);
                 }
@@ -217,19 +288,24 @@ public class WordStatistics {
             context.getCounter(REDUCER_COUNTER_GROUP, "Words Out").increment(1L);
 
 
-            double[] res = new double[2]; //0 - mean 1- variance
-            int count = 0;
+            double[] res = new double[3]; //0- para count, 1 - mean, 2- variance
+            res[0]=0.0;
+            res[1]=0.0;
+            res[2]=0.0;
+
+            double count = 0;
             for(LongArrayWritable lArr : values){
                 long[] vals = lArr.getValueArray();
-                res[0] += vals[0]; //summing count of word occurrences
-                res[1] += vals[1]; //summing count of square of word occurrences
+                res[1] += vals[0]; //summing count of word occurrences
+                res[2] += vals[1]; //summing count of square of word occurrences
                 count++;
+                //System.out.println("DEBUG: "+key+",  "+count+","+vals[0]+","+vals[1]);
             }
-
-            res[0] /= count; //computes mean for the word
+            res[0] = count;
+            res[1] /= count; //computes mean for the word
             double var = 0.0;
-            var = (res[1]/count) - (res[0]*res[0]); //computes variance for the given word
-            res[1] = var;
+            var = (res[2]/count) - (res[1]*res[1]); //computes variance for the given word
+            res[2] = var;
 
             DoubleArrayWritable redOutput = new DoubleArrayWritable();
             redOutput.setValueArray(res);
