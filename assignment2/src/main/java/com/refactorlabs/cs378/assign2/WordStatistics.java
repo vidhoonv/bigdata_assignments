@@ -217,15 +217,37 @@ public class WordStatistics {
         private static final String MAPPER_COUNTER_GROUP = "Mapper Counts";
         private Text word = new Text();
 
-        public String preProcessToken(String token){
+        public String[] preProcessToken(String token){
 
-            //convert to lower case
-            token=token.toLowerCase();
+            String[] resTokens;
 
-            //remove all punctuations from beginning and end of text
-            token=token.replaceAll("^\\p{Punct}+|\\p{Punct}+$", "");
+            if(token.contains("--")){
+                //special case in dataset
+                resTokens = token.split("--");
+            }
+            else{
+                resTokens = new String[1];
+                resTokens[0] = token;
+            }
+            int i=0;
+            for(String tok : resTokens){
+                //special case in dataset
+                if(tok.endsWith("]") && tok.contains("[")){
+                    int sIndex = tok.indexOf("[");
+                    tok = tok.substring(0,sIndex);
+                }
+                //convert to lower case
+                tok=tok.toLowerCase();
+                //remove all punctuations from beginning and end of text
+                tok=tok.replaceAll("^\\p{Punct}+|\\p{Punct}+$", "");
 
-            return token;
+                resTokens[i] = tok;
+                i++;
+
+            }
+
+            return resTokens;
+
         }
         @Override
         public void map(LongWritable key, Text value, Context context)
@@ -245,15 +267,20 @@ public class WordStatistics {
                 /*
                     insert all preprocessing of punctuations logic here
                  */
-                token = preProcessToken(token);
-                if(wordCount.containsKey(token) == false){
-                    wordCount.put(token,1L);
-                }
-                else{
-                    wordCount.put(token,wordCount.get(token)+1);
+
+                String[] tokens = preProcessToken(token);
+
+                for(String tok : tokens){
+                    if(wordCount.containsKey(tok) == false){
+                        wordCount.put(tok,1L);
+                    }
+                    else{
+                        wordCount.put(tok,wordCount.get(tok)+1);
+                    }
+
+                    context.getCounter(MAPPER_COUNTER_GROUP, "Words Out").increment(1L);
                 }
 
-                context.getCounter(MAPPER_COUNTER_GROUP, "Words Out").increment(1L);
             }
 
             /*
