@@ -30,10 +30,6 @@ public class WordStatistics {
      */
     public static class LongArrayWritable extends ArrayWritable{
         /*
-            a public member to hold size
-         */
-       // public Long sz = new Long();
-        /*
             Defining a constructor to set the type
             of ArrayWritable
 
@@ -149,23 +145,6 @@ public class WordStatistics {
             set(wVals);
         }
 
-        /*
-            override toStrings method to tell how to display the output
-            from DoubleArrayWritable
-
-         */
-
-        public String[] toStrings(){
-            Writable[] wVals = get();
-            String[] outArr = new String[wVals.length];
-
-            for(int i=0;i<wVals.length;i++){
-                outArr[i] = ((DoubleWritable)wVals[i]).toString();
-            }
-
-            return outArr;
-        }
-
         public String toString(){
             Writable[] wVals = get();
            // String[] outArr = new String[wVals.length];
@@ -208,14 +187,21 @@ public class WordStatistics {
     /*
         Defining MapClass as an extension of Mapper
         Input: Takes LongWritable Key and Text Value
-        Output: LongWritable key and {Text, LongWritable, LongWritable} Value - LongArrayWritable
+        Output: LongWritable key and {LongWritable, LongWritable} Value - LongArrayWritable
 
-
+        The Mapper takes input and processes paragraph by paragraph.
+        For words in each para, it accumulates the frequency of occurrence in a hashmap
+        and flushes the accumulated data into LongArrayWritable (number of occurrences and
+        square of number of occurrences).
 
      */
     public static class MapClass extends Mapper<LongWritable, Text, Text, LongArrayWritable>{
+        /**
+         * Counter group for the mapper.  Individual counters are grouped for the mapper.
+         */
         private static final String MAPPER_COUNTER_GROUP = "Mapper Counts";
         private Text word = new Text();
+
 
         public String[] preProcessToken(String token){
 
@@ -253,13 +239,12 @@ public class WordStatistics {
         public void map(LongWritable key, Text value, Context context)
                 throws IOException, InterruptedException {
             String linesContent = value.toString();
+            //split multiple lines (paras)
             String[] lines= linesContent.split("\n");
 
+            //process one para after another
             for(String line : lines){
                 StringTokenizer tokenizer = new StringTokenizer(line);
-
-                context.getCounter(MAPPER_COUNTER_GROUP, "Input Lines").increment(1L);
-
             /*
                 process the input line
              */
@@ -268,7 +253,7 @@ public class WordStatistics {
                     String token = tokenizer.nextToken();
 
                 /*
-                    insert all preprocessing of punctuations logic here
+                    do all preprocessing steps on token
                  */
 
                     String[] tokens = preProcessToken(token);
@@ -281,13 +266,13 @@ public class WordStatistics {
                             wordCount.put(tok,wordCount.get(tok)+1);
                         }
 
-                        context.getCounter(MAPPER_COUNTER_GROUP, "Words Out").increment(1L);
+                        context.getCounter(MAPPER_COUNTER_GROUP, "Tokens Mapped out").increment(1L);
                     }
 
                 }
 
             /*
-                create mapper output
+                create mapper output for each paragraph
              */
                 long[] vArr = new long[2];
                 for(String k : wordCount.keySet()){
@@ -301,14 +286,25 @@ public class WordStatistics {
                     word.set(k);
                     context.write(word, mOutput);
                 }
-
+                //flush hash map after processing each paragraph of text
                 wordCount.clear();
 
             }
 
         }
     }
+    /*
+           Defining CombineClass as an extension of Reducer
+           Input: Takes Text Key and LongArrayWritable value
+           Output: Text key and {LongWritable, LongWritable, LongWritable} Value - LongArrayWritable
 
+           The purpose of combiner is to sum up counts and square of counts of same words
+           occuring in different paragraphs and also to count the number of paragraphs in which
+           the word has occured.
+
+
+
+        */
     public static class CombineClass extends Reducer<Text,LongArrayWritable,Text, LongArrayWritable>{
         /**
          * Counter group for the combiner.  Individual counters are grouped for the combiner.
@@ -338,24 +334,30 @@ public class WordStatistics {
             cOutput.setValueArray(rArr);
             context.write(key,cOutput);
 
-            context.getCounter(COMBINER_COUNTER_GROUP, "Words Out").increment(1L);
-
+            context.getCounter(COMBINER_COUNTER_GROUP, "Unique Words Combined").increment(1L);
         }
     }
+
+     /*
+        Defining ReduceClass as an extension of Reducer
+        Input: Takes Text Key and LongArrayWritable Value
+        Output: Text key and {Count, Mean, Variance} Value - DoubleArrayWritable
+
+        The reducer sums up the number of occurrences and square of number of occurrences
+        for each word and also tracks the number of paragraphs in which each word has
+        occurred. This is used to calculate the required mean, variance and paragraph
+        count of each word for the given data.
+
+     */
 
     public static class ReduceClass extends Reducer<Text,LongArrayWritable,Text, DoubleArrayWritable> {
         /**
          * Counter group for the reducer.  Individual counters are grouped for the reducer.
          */
         private static final String REDUCER_COUNTER_GROUP = "Reducer Counts";
-
         @Override
         public void reduce(Text key, Iterable<LongArrayWritable> values, Context context)
                 throws IOException, InterruptedException {
-
-
-            context.getCounter(REDUCER_COUNTER_GROUP, "Words Out").increment(1L);
-
 
             double[] res = new double[3]; //0- para count, 1 - mean, 2- variance
             res[0]=0.0;
@@ -379,6 +381,8 @@ public class WordStatistics {
             DoubleArrayWritable redOutput = new DoubleArrayWritable();
             redOutput.setValueArray(res);
             context.write(key, redOutput);
+
+            context.getCounter(REDUCER_COUNTER_GROUP, "Unique Words Reduced").increment(1L);
         }
     }
 
@@ -401,6 +405,7 @@ public class WordStatistics {
 
         // Set the map and reduce classes.
         job.setMapperClass(MapClass.class);
+        job.setCombinerClass(CombineClass.class);
         job.setReducerClass(ReduceClass.class);
 
         // Set the input and output file formats.
