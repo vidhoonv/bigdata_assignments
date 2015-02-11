@@ -4,6 +4,14 @@ package com.refactorlabs.cs378.assign3;
  * Created by vidhoonv on 2/10/15.
  */
 
+/*
+PENDING ITEMS:
+
+1) sorted order of references - done but doubts
+2) preprocessing improvement
+
+ */
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
@@ -38,12 +46,12 @@ public class InvertedIndex {
             if(line.length()<=0)
                 return;
 
-            String[] parts = line.split(" ",2);
+            String[] parts = line.split("\\s+",2);
 
             String documentID = parts[0];
             String docContent = parts[1];
 
-            String[] words = docContent.split(" ");
+            String[] words = docContent.split("\\s+");
             for(String wrd : words){
                 /*
                     do preprocessing on word here
@@ -111,6 +119,7 @@ public class InvertedIndex {
                 docList.add(docid);
             }
 
+            Collections.sort(docList);
             docsList.set(getDocListString(docList));
             context.write(key,docsList);
 
