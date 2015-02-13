@@ -37,6 +37,12 @@ public class InvertedIndex {
          */
         private Text word = new Text();
         private Text docID = new Text();
+
+        /**
+         * Counter group for the mapper.  Individual counters are grouped for the mapper.
+         */
+        private static final String MAPPER_COUNTER_GROUP = "Mapper Counts";
+
         /*
          For each line, the map method gets key (number of bytes)
          and value (the content of the line)
@@ -87,6 +93,7 @@ public class InvertedIndex {
                 word.set(wrd);
                 docID.set(documentID);
                 context.write(word,docID);
+                context.getCounter(MAPPER_COUNTER_GROUP, "Words Mapped out").increment(1L);
             }
 
 
@@ -114,6 +121,12 @@ public class InvertedIndex {
             the list of doc IDs for each word
          */
         private Text docsText = new Text();
+
+        /**
+         * Counter group for the combiner.  Individual counters are grouped for the combiner.
+         */
+        private static final String COMBINER_COUNTER_GROUP = "Combiner Counts";
+
         /*
            A helper method to combine entries in a
            string arraylist into a String object
@@ -152,6 +165,7 @@ public class InvertedIndex {
              */
             docsText.set(getDocListString(docList));
             context.write(key,docsText);
+            context.getCounter(COMBINER_COUNTER_GROUP, "Unique words combined").increment(1L);
 
         }
     }
@@ -173,6 +187,11 @@ public class InvertedIndex {
             the list of doc IDs for each word
          */
         private Text docsText = new Text();
+
+        /**
+         * Counter group for the reducer.  Individual counters are grouped for the reducer.
+         */
+        private static final String REDUCER_COUNTER_GROUP = "Reducer Counts";
 
         /*
            A helper method to combine entries in a
@@ -248,6 +267,7 @@ public class InvertedIndex {
 
             docsText.set(getDocListString(docList));
             context.write(key,docsText);
+            context.getCounter(REDUCER_COUNTER_GROUP, "Unique Words Reduced").increment(1L);
 
         }
     }
