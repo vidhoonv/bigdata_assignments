@@ -259,8 +259,9 @@ public class InvertedIndex {
                      sort in reducer. But we need to merge these list of
                      doc IDs properly
                  */
-                String [] docs = val.toString().split(",");
-                docList = mergeDocs(docList,docs);
+                //String [] docs = val.toString().split(",");
+                //docList = mergeDocs(docList,docs);
+                docList.add(val.toString());
 
             }
 
