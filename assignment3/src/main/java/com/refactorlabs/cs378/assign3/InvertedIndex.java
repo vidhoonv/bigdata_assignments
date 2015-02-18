@@ -128,7 +128,7 @@ public class InvertedIndex {
         private static final String COMBINER_COUNTER_GROUP = "Combiner Counts";
 
         /*
-           A helper method to combine entries in a
+           A helper method to combine entries in a20
            string arraylist into a String object
            in comma separated list format which
            can be directly merged by reducer
@@ -259,8 +259,8 @@ public class InvertedIndex {
                      sort in reducer. But we need to merge these list of
                      doc IDs properly
                  */
-                //String [] docs = val.toString().split(",");
-                //docList = mergeDocs(docList,docs);
+                String [] docs = val.toString().split(",");
+                docList = mergeDocs(docList,docs);
                 docList.add(val.toString());
 
             }
